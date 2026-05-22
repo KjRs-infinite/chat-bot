@@ -10,6 +10,7 @@
 - 按 `Enter` 直接送出，`Shift + Enter` 換行
 - 對話時間格式：`yyyy/MM/dd HH:mm:ss`，使用台北時區與 24 小時制
 - 使用者與 `chat bot5` 的訊息會寫入指定 Google 試算表
+- 前端改用 JSONP 方式呼叫 GAS，避免 GitHub Pages 直連 `script.google.com` 的跨域限制
 
 ## 檔案
 

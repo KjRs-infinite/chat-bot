@@ -32,25 +32,14 @@ chatForm.addEventListener("submit", async (event) => {
 
   try {
     const timestamp = formatTimestamp(new Date());
-    const response = await fetch(GAS_ENDPOINT, {
-      method: "POST",
-      headers: {
-        "Content-Type": "text/plain;charset=utf-8",
-      },
-      body: JSON.stringify({
-        message,
-        botName: BOT_NAME,
-        userName: USER_NAME,
-        history: requestHistory,
-        sentAt: timestamp,
-      }),
+    const data = await sendJsonpRequest({
+      message,
+      botName: BOT_NAME,
+      userName: USER_NAME,
+      history: requestHistory,
+      sentAt: timestamp,
     });
 
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
-    }
-
-    const data = await response.json();
     if (!data.ok) {
       throw new Error(data.error || "後端回覆格式不正確");
     }
@@ -125,4 +114,37 @@ function formatTimestamp(date) {
 
   const map = Object.fromEntries(parts.map((part) => [part.type, part.value]));
   return `${map.year}/${map.month}/${map.day} ${map.hour}:${map.minute}:${map.second}`;
+}
+
+function sendJsonpRequest(payload) {
+  return new Promise((resolve, reject) => {
+    const callbackName = `jsonp_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+    const script = document.createElement("script");
+    const timeout = window.setTimeout(() => {
+      cleanup();
+      reject(new Error("連線逾時，請稍後再試。"));
+    }, 20000);
+
+    function cleanup() {
+      clearTimeout(timeout);
+      delete window[callbackName];
+      script.remove();
+    }
+
+    window[callbackName] = (response) => {
+      cleanup();
+      resolve(response);
+    };
+
+    script.onerror = () => {
+      cleanup();
+      reject(new Error("無法連線到後端服務。"));
+    };
+
+    const url = new URL(GAS_ENDPOINT);
+    url.searchParams.set("callback", callbackName);
+    url.searchParams.set("payload", encodeURIComponent(JSON.stringify(payload)));
+    script.src = url.toString();
+    document.head.appendChild(script);
+  });
 }

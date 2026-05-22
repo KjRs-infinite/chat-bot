@@ -5,29 +5,25 @@ const TIME_ZONE = 'Asia/Taipei';
 const BOT_NAME = 'chat bot5';
 const USER_NAME = '使用者';
 
+function doGet(e) {
+  if (e && e.parameter && e.parameter.callback && e.parameter.payload) {
+    const data = handleChatRequest_(e.parameter.payload);
+    return jsonpOutput_(data, e.parameter.callback);
+  }
+
+  return jsonOutput_({
+    ok: true,
+    status: 'ready',
+    botName: BOT_NAME,
+    model: OPENAI_MODEL,
+    sheetName: SHEET_NAME,
+  });
+}
+
 function doPost(e) {
   try {
     const payload = parsePayload_(e);
-    const userMessage = String(payload.message || '').trim();
-    const history = Array.isArray(payload.history) ? payload.history : [];
-
-    if (!userMessage) {
-      return jsonOutput_({ ok: false, error: '請輸入訊息。' });
-    }
-
-    const userTimestamp = formatTimestamp_(new Date());
-    appendLogRow_(userTimestamp, USER_NAME, userMessage);
-
-    const reply = generateReply_(userMessage, history);
-    const botTimestamp = formatTimestamp_(new Date());
-    appendLogRow_(botTimestamp, BOT_NAME, reply);
-
-    return jsonOutput_({
-      ok: true,
-      reply: reply,
-      timestamp: botTimestamp,
-      model: OPENAI_MODEL,
-    });
+    return jsonOutput_(handleChatPayload_(payload));
   } catch (error) {
     return jsonOutput_({
       ok: false,
@@ -36,14 +32,36 @@ function doPost(e) {
   }
 }
 
-function doGet() {
-  return jsonOutput_({
+function handleChatRequest_(encodedPayload) {
+  try {
+    const payload = JSON.parse(decodeURIComponent(encodedPayload || ''));
+    return handleChatPayload_(payload);
+  } catch (error) {
+    return { ok: false, error: error.message || '請輸入訊息。' };
+  }
+}
+
+function handleChatPayload_(payload) {
+  const userMessage = String(payload.message || '').trim();
+  const history = Array.isArray(payload.history) ? payload.history : [];
+
+  if (!userMessage) {
+    return { ok: false, error: '請輸入訊息。' };
+  }
+
+  const userTimestamp = formatTimestamp_(new Date());
+  appendLogRow_(userTimestamp, USER_NAME, userMessage);
+
+  const reply = generateReply_(userMessage, history);
+  const botTimestamp = formatTimestamp_(new Date());
+  appendLogRow_(botTimestamp, BOT_NAME, reply);
+
+  return {
     ok: true,
-    status: 'ready',
-    botName: BOT_NAME,
+    reply: reply,
+    timestamp: botTimestamp,
     model: OPENAI_MODEL,
-    sheetName: SHEET_NAME,
-  });
+  };
 }
 
 function parsePayload_(e) {
@@ -164,4 +182,12 @@ function jsonOutput_(data) {
   return ContentService
     .createTextOutput(JSON.stringify(data))
     .setMimeType(ContentService.MimeType.JSON);
+}
+
+function jsonpOutput_(data, callbackName) {
+  const safeCallback = String(callbackName || 'callback').replace(/[^\w$.]/g, '');
+  const body = safeCallback + '(' + JSON.stringify(data) + ');';
+  return ContentService
+    .createTextOutput(body)
+    .setMimeType(ContentService.MimeType.TEXT);
 }
