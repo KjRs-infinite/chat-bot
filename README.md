@@ -16,6 +16,7 @@
 - `index.html`：聊天頁面結構
 - `styles.css`：簡潔質感 UI 樣式
 - `app.js`：前端互動與 GAS 呼叫
+- `chat-bot.html`：單一檔案版，可直接部署
 - `gas/Code.gs`：Google Apps Script 後端
 
 ## 後端設定
@@ -23,7 +24,7 @@
 1. 到 Apps Script 專案貼上 `gas/Code.gs`。
 2. 確認指令碼屬性已有 `OPENAI_API_KEY`。
 3. 部署為 Web App，權限建議設定為可由網頁呼叫。
-4. 若重新部署產生新的 `/exec` URL，請同步更新 `app.js` 裡的 `GAS_ENDPOINT`。
+4. 若重新部署產生新的 `/exec` URL，請同步更新 `app.js` 與 `chat-bot.html` 裡的 `GAS_ENDPOINT`。
 
 ## 試算表欄位
 
