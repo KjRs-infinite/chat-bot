@@ -110,9 +110,10 @@ function sendJsonpRequest(payload) {
   return new Promise((resolve, reject) => {
     const callbackName = `jsonp_${Date.now()}_${Math.random().toString(36).slice(2)}`;
     const script = document.createElement("script");
+    let loaded = false;
     const timeout = window.setTimeout(() => {
       cleanup();
-      reject(new Error("連線逾時，請稍後再試。"));
+      reject(new Error(loaded ? "後端有回應，但未觸發 callback。" : "連線逾時，請稍後再試。"));
     }, 20000);
 
     function cleanup() {
@@ -126,15 +127,21 @@ function sendJsonpRequest(payload) {
       resolve(response);
     };
 
+    script.onload = () => {
+      loaded = true;
+    };
+
     script.onerror = () => {
       cleanup();
-      reject(new Error("無法連線到後端服務。"));
+      reject(new Error("後端腳本載入失敗。"));
     };
 
     const url = new URL(GAS_ENDPOINT);
     url.searchParams.set("callback", callbackName);
     url.searchParams.set("payload", encodeURIComponent(JSON.stringify(payload)));
+    url.searchParams.set("_", String(Date.now()));
     script.src = url.toString();
+    script.async = true;
     document.head.appendChild(script);
   });
 }
