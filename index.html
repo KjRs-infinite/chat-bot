@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>chat bot</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;800&family=Noto+Serif+TC:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <main class="page-shell">
+    <section class="chat-card" aria-label="chat bot 對話頁面">
+      <header class="chat-header">
+        <div>
+          <p class="eyebrow">chat bot</p>
+          <h1>和 chat bot5 輕鬆聊天</h1>
+          <p class="intro">她是一位開朗、溫柔的女性聊天夥伴，會用繁體中文陪你整理想法、分享日常，也會把對話時間記錄到試算表。</p>
+        </div>
+        <div class="bot-badge" aria-label="chat bot5 線上">
+          <span class="status-dot"></span>
+          線上
+        </div>
+      </header>
+
+      <section id="chatWindow" class="chat-window" aria-live="polite" aria-label="聊天紀錄">
+        <article class="message bot">
+          <div class="avatar" aria-hidden="true">悠</div>
+          <div class="bubble">
+            <p>嗨，我是 chat bot5。今天想聊什麼呢？你可以直接輸入訊息，按 Enter 送出。</p>
+            <time id="welcomeTime"></time>
+          </div>
+        </article>
+      </section>
+
+      <form id="chatForm" class="composer">
+        <label class="sr-only" for="messageInput">輸入訊息</label>
+        <textarea
+          id="messageInput"
+          name="message"
+          rows="1"
+          maxlength="2000"
+          placeholder="輸入訊息，按 Enter 送出；Shift + Enter 換行"
+          required
+        ></textarea>
+        <button id="sendButton" type="submit">送出</button>
+      </form>
+
+      <p id="statusText" class="status" role="status"></p>
+    </section>
+  </main>
+
+  <script src="./app.js"></script>
+</body>
+</html>
