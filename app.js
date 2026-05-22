@@ -1,4 +1,4 @@
-const GAS_ENDPOINT = "https://script.google.com/macros/s/AKfycbxPOOPaG72o-wU0DfsmyZ9RfxXmxSB6AkgEuAzk1noqKnqnBx-pFqmDbArxo6q7-xwJSQ/exec";
+const GAS_ENDPOINT = "https://script.google.com/macros/s/AKfycbyCBGuREZ_Uf8W_ZQk-UEJn5G4hgKFTDFJhL8ZnHP4VfIv2t8JuQhxo4HJ03i0sY9pM9g/exec";
 const BOT_NAME = "chat bot5";
 const USER_NAME = "使用者";
 const MAX_HISTORY_ITEMS = 12;
