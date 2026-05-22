@@ -4,7 +4,6 @@ const USER_NAME = "使用者";
 const MAX_HISTORY_ITEMS = 12;
 
 const conversationHistory = [];
-
 const chatWindow = document.querySelector("#chatWindow");
 const chatForm = document.querySelector("#chatForm");
 const messageInput = document.querySelector("#messageInput");
@@ -19,9 +18,7 @@ chatForm.addEventListener("submit", async (event) => {
   event.preventDefault();
 
   const message = messageInput.value.trim();
-  if (!message) {
-    return;
-  }
+  if (!message) return;
 
   const requestHistory = conversationHistory.slice(-MAX_HISTORY_ITEMS);
   appendMessage("user", "你", message);
@@ -31,18 +28,15 @@ chatForm.addEventListener("submit", async (event) => {
   setBusy(true, "chat bot5 正在溫柔思考中...");
 
   try {
-    const timestamp = formatTimestamp(new Date());
     const data = await sendJsonpRequest({
       message,
       botName: BOT_NAME,
       userName: USER_NAME,
       history: requestHistory,
-      sentAt: timestamp,
+      sentAt: formatTimestamp(new Date()),
     });
 
-    if (!data.ok) {
-      throw new Error(data.error || "後端回覆格式不正確");
-    }
+    if (!data.ok) throw new Error(data.error || "後端回覆格式不正確");
 
     appendMessage("bot", "悠", data.reply, data.timestamp);
     conversationHistory.push({ role: "assistant", text: data.reply });
@@ -94,10 +88,7 @@ function setBusy(isBusy, text) {
   sendButton.disabled = isBusy;
   messageInput.disabled = isBusy;
   statusText.textContent = text;
-
-  if (!isBusy) {
-    messageInput.focus();
-  }
+  if (!isBusy) messageInput.focus();
 }
 
 function formatTimestamp(date) {
@@ -111,7 +102,6 @@ function formatTimestamp(date) {
     second: "2-digit",
     hour12: false,
   }).formatToParts(date);
-
   const map = Object.fromEntries(parts.map((part) => [part.type, part.value]));
   return `${map.year}/${map.month}/${map.day} ${map.hour}:${map.minute}:${map.second}`;
 }
