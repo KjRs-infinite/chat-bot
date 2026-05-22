@@ -29,7 +29,7 @@ function doPost(e) {
 
 function handleChatRequest_(encodedPayload) {
   try {
-    return handleChatPayload_(JSON.parse(decodeURIComponent(encodedPayload || '')));
+    return handleChatPayload_(JSON.parse(encodedPayload || '{}'));
   } catch (error) {
     return { ok: false, error: error.message || '請輸入訊息。' };
   }

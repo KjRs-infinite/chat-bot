@@ -138,7 +138,7 @@ function sendJsonpRequest(payload) {
 
     const url = new URL(GAS_ENDPOINT);
     url.searchParams.set("callback", callbackName);
-    url.searchParams.set("payload", encodeURIComponent(JSON.stringify(payload)));
+    url.searchParams.set("payload", JSON.stringify(payload));
     url.searchParams.set("_", String(Date.now()));
     script.src = url.toString();
     script.async = true;
