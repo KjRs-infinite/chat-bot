@@ -5,40 +5,20 @@ const TIME_ZONE = 'Asia/Taipei';
 const BOT_NAME = 'chat bot5';
 const USER_NAME = '使用者';
 
-function doGet(e) {
-  if (e && e.parameter && e.parameter.callback && e.parameter.payload) {
-    return jsonpOutput_(handleChatRequest_(e.parameter.payload), e.parameter.callback);
-  }
-
-  return jsonOutput_({
-    ok: true,
-    status: 'ready',
-    botName: BOT_NAME,
-    model: OPENAI_MODEL,
-    sheetName: SHEET_NAME,
-  });
+function doGet() {
+  return HtmlService.createHtmlOutput(buildHtml_())
+    .setTitle('chat bot')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
-function doPost(e) {
-  try {
-    return jsonOutput_(handleChatPayload_(parsePayload_(e)));
-  } catch (error) {
-    return jsonOutput_({ ok: false, error: error.message || '伺服器發生未知錯誤。' });
-  }
-}
+function chat(payload) {
+  const data = payload || {};
+  const userMessage = String(data.message || '').trim();
+  const history = Array.isArray(data.history) ? data.history : [];
 
-function handleChatRequest_(encodedPayload) {
-  try {
-    return handleChatPayload_(JSON.parse(encodedPayload || '{}'));
-  } catch (error) {
-    return { ok: false, error: error.message || '請輸入訊息。' };
+  if (!userMessage) {
+    return { ok: false, error: '請輸入訊息。' };
   }
-}
-
-function handleChatPayload_(payload) {
-  const userMessage = String(payload.message || '').trim();
-  const history = Array.isArray(payload.history) ? payload.history : [];
-  if (!userMessage) return { ok: false, error: '請輸入訊息。' };
 
   const userTimestamp = formatTimestamp_(new Date());
   appendLogRow_(userTimestamp, USER_NAME, userMessage);
@@ -47,12 +27,153 @@ function handleChatPayload_(payload) {
   const botTimestamp = formatTimestamp_(new Date());
   appendLogRow_(botTimestamp, BOT_NAME, reply);
 
-  return { ok: true, reply, timestamp: botTimestamp, model: OPENAI_MODEL };
+  return {
+    ok: true,
+    reply: reply,
+    timestamp: botTimestamp,
+    model: OPENAI_MODEL,
+  };
 }
 
-function parsePayload_(e) {
-  if (!e || !e.postData || !e.postData.contents) return {};
-  return JSON.parse(e.postData.contents);
+function buildHtml_() {
+  return `<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>chat bot</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;800&family=Noto+Serif+TC:wght@600;700&display=swap" rel="stylesheet">
+  <style>
+    :root { color-scheme: light; --bg:#f7efe6; --ink:#2b211c; --muted:#766a62; --line:rgba(79,61,48,.14); --paper:rgba(255,252,247,.88); --paper-solid:#fffaf4; --accent:#c96d4a; --accent-deep:#9e4f38; --rose:#f5d8ca; --bot:#fff5eb; --user:#304d59; --user-text:#fffaf6; --shadow:0 28px 70px rgba(91,62,42,.16); }
+    * { box-sizing:border-box; } html { min-height:100%; }
+    body { margin:0; min-height:100vh; font-family:"Noto Sans TC",sans-serif; color:var(--ink); background:radial-gradient(circle at 12% 12%, rgba(231,153,119,.34), transparent 28%), radial-gradient(circle at 86% 18%, rgba(85,124,134,.18), transparent 26%), linear-gradient(145deg, #f5e2d5 0%, var(--bg) 46%, #fffdf8 100%); }
+    body::before { content:""; position:fixed; inset:0; pointer-events:none; background-image:linear-gradient(rgba(114,88,69,.045) 1px, transparent 1px), linear-gradient(90deg, rgba(114,88,69,.04) 1px, transparent 1px); background-size:42px 42px; mask-image:linear-gradient(to bottom, rgba(0,0,0,.52), transparent 72%); }
+    .page-shell { min-height:100vh; display:grid; place-items:center; padding:28px; }
+    .chat-card { width:min(100%,960px); height:min(860px, calc(100vh - 56px)); min-height:620px; display:grid; grid-template-rows:auto 1fr auto auto; gap:18px; padding:clamp(20px,3vw,34px); border:1px solid var(--line); border-radius:34px; background:var(--paper); box-shadow:var(--shadow); backdrop-filter:blur(22px); }
+    .chat-header { display:flex; align-items:flex-start; justify-content:space-between; gap:20px; } .eyebrow,.chat-header h1,.intro,.status{margin:0;}
+    .eyebrow { color:var(--accent-deep); font-size:.8rem; font-weight:800; letter-spacing:.22em; text-transform:uppercase; }
+    .chat-header h1 { margin-top:8px; font-family:"Noto Serif TC",serif; font-size:clamp(1.8rem,4vw,3.35rem); line-height:1.16; letter-spacing:-.03em; }
+    .intro { max-width:42rem; margin-top:12px; color:var(--muted); line-height:1.8; }
+    .bot-badge { flex:0 0 auto; display:inline-flex; align-items:center; gap:8px; padding:10px 14px; border:1px solid rgba(158,79,56,.14); border-radius:999px; background:rgba(255,250,244,.74); color:var(--accent-deep); font-weight:700; }
+    .status-dot { width:9px; height:9px; border-radius:50%; background:#58b368; box-shadow:0 0 0 6px rgba(88,179,104,.14); }
+    .chat-window { min-height:0; overflow-y:auto; display:flex; flex-direction:column; gap:14px; padding:4px 8px 4px 0; scroll-behavior:smooth; }
+    .message { display:flex; align-items:flex-end; gap:12px; animation:rise-in 220ms ease-out; } .message.user { justify-content:flex-end; }
+    .message.user .avatar { order:2; background:rgba(48,77,89,.12); color:var(--user); }
+    .message.user .bubble { order:1; color:var(--user-text); background:linear-gradient(135deg, #304d59, #203946); border-bottom-right-radius:8px; }
+    .avatar { flex:0 0 44px; width:44px; height:44px; display:grid; place-items:center; border-radius:50%; color:var(--accent-deep); background:linear-gradient(135deg, #ffe6d7, var(--rose)); font-weight:800; }
+    .bubble { max-width:min(78%,650px); padding:15px 17px; border:1px solid rgba(93,67,48,.08); border-radius:22px 22px 22px 8px; background:var(--bot); line-height:1.78; }
+    .bubble p { margin:0; white-space:pre-wrap; word-break:break-word; } .bubble time { display:block; margin-top:8px; font-size:.78rem; opacity:.68; }
+    .composer { display:grid; grid-template-columns:1fr auto; gap:12px; align-items:end; padding:10px; border:1px solid rgba(79,61,48,.11); border-radius:24px; background:rgba(255,252,247,.72); }
+    .composer textarea { width:100%; min-height:54px; max-height:176px; resize:none; border:0; border-radius:18px; padding:14px 16px; color:var(--ink); background:var(--paper-solid); font:inherit; line-height:1.6; }
+    .composer textarea:focus,.composer button:focus { outline:3px solid rgba(201,109,74,.26); outline-offset:2px; }
+    .composer button { height:54px; border:0; border-radius:18px; padding:0 24px; color:#fffaf6; background:linear-gradient(135deg, var(--accent), var(--accent-deep)); box-shadow:0 14px 28px rgba(158,79,56,.22); cursor:pointer; font:inherit; font-weight:800; transition:transform 160ms ease, opacity 160ms ease, box-shadow 160ms ease; }
+    .composer button:hover { transform:translateY(-1px); box-shadow:0 18px 34px rgba(158,79,56,.26); } .composer button:disabled { cursor:wait; opacity:.68; transform:none; }
+    .status { min-height:1.4em; color:var(--muted); font-size:.92rem; }
+    .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+    @keyframes rise-in { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+    @media (max-width:720px){ .page-shell{padding:12px;} .chat-card{min-height:calc(100vh - 24px); height:calc(100vh - 24px); border-radius:24px;} .chat-header{display:block;} .bot-badge{margin-top:16px;} .bubble{max-width:100%;} .composer{grid-template-columns:1fr;} .composer button{width:100%;} }
+  </style>
+</head>
+<body>
+  <main class="page-shell">
+    <section class="chat-card" aria-label="chat bot 對話頁面">
+      <header class="chat-header">
+        <div>
+          <p class="eyebrow">chat bot</p>
+          <h1>和 chat bot5 輕鬆聊天</h1>
+          <p class="intro">她是一位開朗、溫柔的女性聊天夥伴，會用繁體中文陪你整理想法、分享日常，也會把對話時間記錄到試算表。</p>
+        </div>
+        <div class="bot-badge" aria-label="chat bot5 線上"><span class="status-dot"></span> 線上</div>
+      </header>
+      <section id="chatWindow" class="chat-window" aria-live="polite" aria-label="聊天紀錄">
+        <article class="message bot">
+          <div class="avatar" aria-hidden="true">悠</div>
+          <div class="bubble">
+            <p>嗨，我是 chat bot5。今天想聊什麼呢？你可以直接輸入訊息，按 Enter 送出。</p>
+            <time id="welcomeTime"></time>
+          </div>
+        </article>
+      </section>
+      <form id="chatForm" class="composer">
+        <label class="sr-only" for="messageInput">輸入訊息</label>
+        <textarea id="messageInput" name="message" rows="1" maxlength="2000" placeholder="輸入訊息，按 Enter 送出；Shift + Enter 換行" required></textarea>
+        <button id="sendButton" type="submit">送出</button>
+      </form>
+      <p id="statusText" class="status" role="status"></p>
+    </section>
+  </main>
+  <script>
+    const MAX_HISTORY_ITEMS = 12;
+    const conversationHistory = [];
+    const chatWindow = document.querySelector("#chatWindow");
+    const chatForm = document.querySelector("#chatForm");
+    const messageInput = document.querySelector("#messageInput");
+    const sendButton = document.querySelector("#sendButton");
+    const statusText = document.querySelector("#statusText");
+    const welcomeTime = document.querySelector("#welcomeTime");
+    welcomeTime.textContent = formatTimestamp(new Date());
+    messageInput.focus();
+    chatForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const message = messageInput.value.trim();
+      if (!message) return;
+      const requestHistory = conversationHistory.slice(-MAX_HISTORY_ITEMS);
+      appendMessage("user", "你", message);
+      conversationHistory.push({ role: "user", text: message });
+      messageInput.value = "";
+      autoResize();
+      setBusy(true, "chat bot5 正在溫柔思考中...");
+      try {
+        const data = await callChatServer({
+          message,
+          history: requestHistory,
+          sentAt: formatTimestamp(new Date()),
+        });
+        if (!data.ok) throw new Error(data.error || "後端回覆格式不正確");
+        appendMessage("bot", "悠", data.reply, data.timestamp);
+        conversationHistory.push({ role: "assistant", text: data.reply });
+        setBusy(false, "已記錄這次對話。");
+      } catch (error) {
+        appendMessage("bot", "悠", "抱歉，剛剛連線時出了一點小狀況。請稍後再試一次。");
+        setBusy(false, '錯誤：' + error.message);
+      }
+    });
+    messageInput.addEventListener("input", autoResize);
+    messageInput.addEventListener("keydown", (event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); chatForm.requestSubmit(); } });
+    function appendMessage(role, avatar, text, timestamp = formatTimestamp(new Date())) {
+      const message = document.createElement("article");
+      message.className = "message " + role;
+      const avatarNode = document.createElement("div");
+      avatarNode.className = "avatar";
+      avatarNode.setAttribute("aria-hidden", "true");
+      avatarNode.textContent = avatar;
+      const bubble = document.createElement("div");
+      bubble.className = "bubble";
+      const paragraph = document.createElement("p");
+      paragraph.textContent = text;
+      const time = document.createElement("time");
+      time.textContent = timestamp;
+      bubble.append(paragraph, time);
+      message.append(avatarNode, bubble);
+      chatWindow.appendChild(message);
+      chatWindow.scrollTop = chatWindow.scrollHeight;
+    }
+    function autoResize() { messageInput.style.height = "auto"; messageInput.style.height = Math.min(messageInput.scrollHeight, 176) + "px"; }
+    function setBusy(isBusy, text) { sendButton.disabled = isBusy; messageInput.disabled = isBusy; statusText.textContent = text; if (!isBusy) messageInput.focus(); }
+    function formatTimestamp(date) { const parts = new Intl.DateTimeFormat("zh-TW", { timeZone: "Asia/Taipei", year:"numeric", month:"2-digit", day:"2-digit", hour:"2-digit", minute:"2-digit", second:"2-digit", hour12:false }).formatToParts(date); const map = Object.fromEntries(parts.map((part) => [part.type, part.value])); return map.year + "/" + map.month + "/" + map.day + " " + map.hour + ":" + map.minute + ":" + map.second; }
+    function callChatServer(payload) {
+      return new Promise((resolve, reject) => {
+        google.script.run
+          .withSuccessHandler(resolve)
+          .withFailureHandler((error) => reject(new Error(error && error.message ? error.message : String(error))))
+          .chat(payload);
+      });
+    }
+  </script>
+</body>
+</html>`;
 }
 
 function generateReply_(message, history) {
@@ -129,13 +250,4 @@ function getOrCreateSheet_() {
 
 function formatTimestamp_(date) {
   return Utilities.formatDate(date, TIME_ZONE, 'yyyy/MM/dd HH:mm:ss');
-}
-
-function jsonOutput_(data) {
-  return ContentService.createTextOutput(JSON.stringify(data)).setMimeType(ContentService.MimeType.JSON);
-}
-
-function jsonpOutput_(data, callbackName) {
-  const safeCallback = String(callbackName || 'callback').replace(/[^\w$.]/g, '');
-  return ContentService.createTextOutput(safeCallback + '(' + JSON.stringify(data) + ');').setMimeType(ContentService.MimeType.TEXT);
 }
